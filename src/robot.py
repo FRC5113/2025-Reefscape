@@ -9,12 +9,14 @@ from wpilib import RobotController, SmartDashboard
 from wpimath import applyDeadband, units
 from wpimath.filter import SlewRateLimiter
 from wpimath.geometry import Transform3d, Rotation3d,Pose2d,Transform2d,Rotation2d
-
+from magicbot import feedback
 import magicbot
+
 from components.odometry import Odometry
 from components.swerve_drive import SwerveDrive
 from components.swerve_wheel import SwerveWheel
-from magicbot import feedback
+from components.elevator import Elevator
+
 
 from lemonlib.control import LemonInput
 from lemonlib.util import curve
@@ -35,6 +37,7 @@ class MyRobot(magicbot.MagicRobot):
     front_right: SwerveWheel
     rear_left: SwerveWheel
     rear_right: SwerveWheel
+    elevator: Elevator
 
     low_bandwidth = False
     # greatest speed that chassis should move (not greatest possible speed)
@@ -67,6 +70,12 @@ class MyRobot(magicbot.MagicRobot):
         self.rear_right_direction_motor = TalonFX(42)
         self.rear_right_cancoder = CANcoder(43)
 
+        self.left_elevator_motor = TalonFX(61)
+        self.right_elevator_motor = TalonFX(62)
+        self.elevator_encoder = CANcoder(63)
+        self.upper_elevator_switch = wpilib.DigitalInput(0)
+        self.lower_elevator_switch = wpilib.DigitalInput(1)
+
         self.pigeon = LemonPigeon(30)
 
         # swerve constants
@@ -75,6 +84,14 @@ class MyRobot(magicbot.MagicRobot):
         self.drive_gear_ratio = 6.75
         self.wheel_radius = 0.0508
         self.max_speed = 4.7
+
+        # elevatior parameters for simulation
+        self.kElevatorGearing = 10.0
+        self.kCarriageMass = 5.0  # kg
+        self.kElevatorDrumRadius = 0.02  # meters
+        self.kMinElevatorHeight = 0.0  # meters
+        self.kMaxElevatorHeight = 2.0  # meters
+        self.elevator.set_target_height(1.0)
 
         # swerve module profiles
         self.speed_profile = SmartProfile(
@@ -89,6 +106,16 @@ class MyRobot(magicbot.MagicRobot):
             kP=18.0,
             kV=0.375,
             continuous_range=(-math.pi, math.pi),
+            low_bandwidth=self.low_bandwidth,
+        )
+
+        #elevator profiles
+        self.elevator_profile = SmartProfile(
+            "elevator",
+            kP=0.0,
+            kI=0.0,
+            kD=0.0,
+            continuous_range=(-180, 180),
             low_bandwidth=self.low_bandwidth,
         )
 
@@ -165,6 +192,13 @@ class MyRobot(magicbot.MagicRobot):
             self.swerve_drive.reset_gyro()
         if controller.backbutton():
             self.alert_test.enable()
+
+        if controller.abutton():
+            self.elevator.set_target_height(0.762)  # Move to 30 inches when trigger is pressed
+        else:
+            self.elevator.stop()  # Stop elevator when trigger is not pressed
+
+        self.elevator.execute()  # Always call this to update motor control
         
 
     @feedback
