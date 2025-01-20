@@ -1,14 +1,13 @@
 import math
 from pathlib import Path
 
-
 import wpilib
 from phoenix6.hardware import CANcoder, TalonFX, Pigeon2
 from robotpy_apriltag import AprilTagFieldLayout
-from wpilib import RobotController, SmartDashboard
+from wpilib import RobotController, SmartDashboard,MotorControllerGroup
 from wpimath import applyDeadband, units
 from wpimath.filter import SlewRateLimiter
-from wpimath.geometry import Transform3d, Rotation3d,Pose2d,Transform2d,Rotation2d
+from wpimath.geometry import Transform3d, Rotation3d, Pose2d, Transform2d, Rotation2d
 from magicbot import feedback
 import magicbot
 
@@ -17,16 +16,12 @@ from components.swerve_drive import SwerveDrive
 from components.swerve_wheel import SwerveWheel
 from components.elevator import Elevator
 
-
 from lemonlib.control import LemonInput
 from lemonlib.util import curve
 from lemonlib.util import Alert, AlertManager, AlertType
 from lemonlib.preference import SmartPreference, SmartProfile
-from lemonlib.ctre import LemonPigeon
+from lemonlib.ctre import LemonPigeon, LemonTalonFX
 from lemonlib.vision import LemonCamera, LemonCameraSim
-
-
-# from container import RobotContainer
 
 
 class MyRobot(magicbot.MagicRobot):
@@ -70,11 +65,16 @@ class MyRobot(magicbot.MagicRobot):
         self.rear_right_direction_motor = TalonFX(42)
         self.rear_right_cancoder = CANcoder(43)
 
-        self.left_elevator_motor = TalonFX(61)
-        self.right_elevator_motor = TalonFX(62)
+        self.left_elevator_motor = LemonTalonFX(61)
+        self.right_elevator_motor = LemonTalonFX(62)
         self.elevator_encoder = CANcoder(63)
         self.upper_elevator_switch = wpilib.DigitalInput(0)
         self.lower_elevator_switch = wpilib.DigitalInput(1)
+        """Initialize motors and encoder."""
+        self.right_elevator_motor.setInverted(True)
+
+        # Configure motor controllers to follow each other
+        self.motor_group = MotorControllerGroup(self.left_elevator_motor, self.right_elevator_motor)
 
         self.pigeon = LemonPigeon(30)
 
@@ -91,7 +91,7 @@ class MyRobot(magicbot.MagicRobot):
         self.kElevatorDrumRadius = 0.02  # meters
         self.kMinElevatorHeight = 0.0  # meters
         self.kMaxElevatorHeight = 2.0  # meters
-        self.elevator.set_target_height(1.0)
+     
 
         # swerve module profiles
         self.speed_profile = SmartProfile(
@@ -187,6 +187,11 @@ class MyRobot(magicbot.MagicRobot):
                 not controller.leftbumper(),
                 self.period,
             )
+        if controller.righttrigger() >= 0.8:
+
+            self.elevator.move_up(controller.righttrigger())
+        if controller.lefttrigger() >= 0.8:
+            self.elevator.move_down(controller.lefttrigger())
 
         if controller.startbutton():
             self.swerve_drive.reset_gyro()
@@ -197,6 +202,7 @@ class MyRobot(magicbot.MagicRobot):
             self.elevator.set_target_height(0.762)  # Move to 30 inches when trigger is pressed
         else:
             self.elevator.stop()  # Stop elevator when trigger is not pressed
+        
 
         self.elevator.execute()  # Always call this to update motor control
         
