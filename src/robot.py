@@ -22,6 +22,7 @@ from lemonlib.util import Alert, AlertManager, AlertType
 from lemonlib.preference import SmartPreference, SmartProfile
 from lemonlib.ctre import LemonPigeon, LemonTalonFX
 from lemonlib.vision import LemonCamera, LemonCameraSim
+from rev import SparkMax,SparkLowLevel
 
 
 class MyRobot(magicbot.MagicRobot):
@@ -65,13 +66,14 @@ class MyRobot(magicbot.MagicRobot):
         self.rear_right_direction_motor = TalonFX(42)
         self.rear_right_cancoder = CANcoder(43)
 
-        self.left_elevator_motor = LemonTalonFX(61)
-        self.right_elevator_motor = LemonTalonFX(62)
+        brushless = SparkLowLevel.MotorType.kBrushless
+        self.left_elevator_motor = SparkMax(61, brushless)
+        self.right_elevator_motor = SparkMax(62, brushless)
         self.elevator_encoder = CANcoder(63)
         self.upper_elevator_switch = wpilib.DigitalInput(0)
         self.lower_elevator_switch = wpilib.DigitalInput(1)
         """Initialize motors and encoder."""
-        self.right_elevator_motor.setInverted(True)
+    
 
         # Configure motor controllers to follow each other
         self.motor_group = MotorControllerGroup(self.left_elevator_motor, self.right_elevator_motor)

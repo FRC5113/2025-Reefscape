@@ -4,12 +4,14 @@ from wpilib import DigitalInput, MotorControllerGroup
 import wpimath.controller
 from lemonlib.ctre import LemonTalonFX
 from lemonlib.preference import SmartPreference, SmartProfile
+import rev
 
+from rev import SparkMax
 class Elevator:
 
     # Motors and encoders
-    right_elevator_motor: LemonTalonFX
-    left_elevator_motor: LemonTalonFX
+    right_elevator_motor: SparkMax
+    left_elevator_motor: SparkMax
     elevator_encoder: CANcoder
     upper_elevator_switch: DigitalInput
     lower_elevator_switch: DigitalInput
